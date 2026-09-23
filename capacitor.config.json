@@ -1,0 +1,6 @@
+{
+  "appId": "com.aquaflow.app",
+  "appName": "AquaFlow",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}

@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AquaFlow</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0a1930">
+<style>
+  :root{
+    --bg1:#050b1a; --bg2:#0a1930;
+    --card: rgba(255,255,255,0.06);
+    --card-solid: #0e2038;
+    --border: rgba(255,255,255,0.10);
+    --text: #eaf6ff;
+    --text-dim: #7fa8c9;
+    --accent1: #22d3ee; --accent2: #3b82f6;
+    --danger: #ff6b81;
+    --safe-t: env(safe-area-inset-top,0px);
+    --safe-b: env(safe-area-inset-bottom,0px);
+  }
+  [data-theme="light"]{
+    --bg1:#eaf7fb; --bg2:#dcf1f8;
+    --card: rgba(255,255,255,0.65);
+    --card-solid: #ffffff;
+    --border: rgba(10,50,80,0.10);
+    --text:#0b2942;
+    --text-dim:#537a92;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%; margin:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background: radial-gradient(1200px 800px at 50% -10%, var(--bg2), var(--bg1));
+    color:var(--text);
+    min-height:100%;
+    padding-top:var(--safe-t); padding-bottom:var(--safe-b);
+    transition: background .4s ease, color .4s ease;
+  }
+  #app{max-width:480px; margin:0 auto; padding:20px 18px 90px; min-height:100vh;}
+  .screen{display:none; animation: fadeIn .35s ease;}
+  .screen.active{display:block;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+
+  h1{font-size:15px; letter-spacing:.5px; font-weight:600; color:var(--text-dim); margin:0 0 2px;}
+  h2{font-size:24px; margin:0 0 18px; font-weight:600;}
+  .greeting{font-size:22px; font-weight:600; margin:2px 0 20px;}
+
+  .bottle-wrap{display:flex; justify-content:center; margin:10px 0 22px;}
+  .bottle{
+    position:relative; width:210px; height:250px; border-radius:34px;
+    background:var(--card); border:1px solid var(--border);
+    overflow:hidden; backdrop-filter:blur(12px);
+    box-shadow: 0 20px 50px -20px rgba(34,211,238,.35);
+  }
+  .water{
+    position:absolute; bottom:0; left:0; width:100%; height:0%;
+    background:linear-gradient(180deg, var(--accent1), var(--accent2));
+    transition:height .8s cubic-bezier(.4,0,.2,1);
+  }
+  .wave{position:absolute; left:0; width:200%; height:22px;}
+  .wave1{top:-14px; animation:waveMove 3.2s linear infinite;}
+  .wave2{top:-8px; opacity:.55; animation:waveMove 4.6s linear infinite reverse;}
+  @keyframes waveMove{from{transform:translateX(0);} to{transform:translateX(-50%);}}
+  .bottle-info{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; z-index:2; pointer-events:none;}
+  .bottle-info .drop{font-size:26px;}
+  .bottle-info .ml{font-size:26px; font-weight:700;}
+  .bottle-info .goal{font-size:12px; color:var(--text-dim);}
+  [data-theme="light"] .bottle-info .goal{color:#33566d;}
+  .bubble{position:absolute; bottom:0; width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.55); animation:bubbleUp 1.6s ease-out forwards; z-index:1;}
+  @keyframes bubbleUp{from{transform:translateY(0); opacity:.8;} to{transform:translateY(-160px); opacity:0;}}
+
+  .progress-label{display:flex; justify-content:space-between; font-size:13px; color:var(--text-dim); margin-bottom:6px;}
+  .progress-bar{height:10px; border-radius:6px; background:var(--card); border:1px solid var(--border); overflow:hidden; margin-bottom:22px;}
+  .progress-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--accent1), var(--accent2)); transition:width .8s ease;}
+
+  .quick-row{display:flex; gap:10px; margin-bottom:16px;}
+  .quick-btn{
+    flex:1; padding:14px 0; border-radius:16px; border:1px solid var(--border);
+    background:var(--card); color:var(--text); font-size:15px; font-weight:600;
+    backdrop-filter:blur(8px); cursor:pointer; transition:transform .15s ease, background .2s ease;
+  }
+  .quick-btn:active{transform:scale(.94); background:rgba(34,211,238,.18);}
+  .custom-btn{width:46px; flex:none; font-size:20px;}
+
+  .next-card{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px; border-radius:16px; background:var(--card); border:1px solid var(--border);
+  }
+  .next-card .label{font-size:13px; color:var(--text-dim);}
+  .next-card .time{font-size:18px; font-weight:700; color:var(--accent1);}
+
+  nav#bottomnav{
+    position:fixed; left:0; right:0; bottom:0; z-index:10;
+    padding-bottom:var(--safe-b);
+    background:var(--card-solid); border-top:1px solid var(--border);
+  }
+  .nav-inner{max-width:480px; margin:0 auto; display:flex;}
+  .nav-btn{flex:1; text-align:center; padding:10px 0 8px; background:none; border:none; color:var(--text-dim); font-size:11px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px;}
+  .nav-btn .ic{font-size:20px;}
+  .nav-btn.active{color:var(--accent1);}
+
+  .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; backdrop-filter:blur(10px); margin-bottom:12px;}
+
+  .day-row{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .day-row .dlabel{width:34px; font-size:12px; color:var(--text-dim); font-weight:600;}
+  .day-row .dbar{flex:1; height:14px; border-radius:8px; background:rgba(255,255,255,.08); overflow:hidden; border:1px solid var(--border);}
+  .day-row .dfill{height:100%; background:linear-gradient(90deg,var(--accent1),var(--accent2));}
+  .day-row .dval{width:78px; font-size:12px; text-align:right; color:var(--text-dim);}
+  .day-row .dcheck{width:16px; text-align:center; color:var(--accent1);}
+
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .stat-card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; text-align:center;}
+  .stat-card .num{font-size:26px; font-weight:700; color:var(--accent1);}
+  .stat-card .lbl{font-size:12px; color:var(--text-dim); margin-top:4px;}
+
+  .row{display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border);}
+  .row:last-child{border-bottom:none;}
+  .row .rlabel{font-size:14px;}
+  .row .rsub{font-size:12px; color:var(--text-dim); margin-top:2px;}
+
+  .meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;}
+  .meta-opt{padding:12px; border-radius:14px; border:1px solid var(--border); background:var(--card); text-align:center; font-weight:600; cursor:pointer;}
+  .meta-opt.active{border-color:var(--accent1); background:rgba(34,211,238,.18); color:var(--accent1);}
+  input[type="number"], input[type="time"], select{
+    background:rgba(255,255,255,.06); border:1px solid var(--border); color:var(--text);
+    border-radius:10px; padding:8px 10px; font-size:14px;
+  }
+  [data-theme="light"] input, [data-theme="light"] select{background:rgba(0,0,0,.04);}
+
+  .switch{position:relative; width:44px; height:26px; border-radius:14px; background:rgba(255,255,255,.15); cursor:pointer; border:1px solid var(--border);}
+  .switch.on{background:linear-gradient(90deg,var(--accent1),var(--accent2)); border-color:transparent;}
+  .switch .knob{position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .2s ease;}
+  .switch.on .knob{transform:translateX(18px);}
+
+  .reset-btn{width:100%; padding:14px; border-radius:14px; border:1px solid var(--danger); background:transparent; color:var(--danger); font-weight:600; margin-top:8px; cursor:pointer;}
+
+  #celebration{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.55); z-index:50; opacity:0; pointer-events:none; transition:opacity .3s ease;
+  }
+  #celebration.show{opacity:1; pointer-events:auto;}
+  #celebration .box{background:var(--card-solid); border:1px solid var(--border); border-radius:22px; padding:30px 26px; text-align:center; animation:pop .4s ease;}
+  #celebration .box .emoji{font-size:44px;}
+  #celebration .box .msg{font-size:17px; font-weight:700; margin-top:8px;}
+  @keyframes pop{from{transform:scale(.7); opacity:0;} to{transform:scale(1); opacity:1;}}
+
+  .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:flex-end; justify-content:center; z-index:40; opacity:0; pointer-events:none; transition:opacity .25s ease;}
+  .modal-overlay.show{opacity:1; pointer-events:auto;}
+  .modal-box{background:var(--card-solid); border:1px solid var(--border); border-radius:22px 22px 0 0; padding:20px 20px 28px; width:100%; max-width:480px; transform:translateY(20px); transition:transform .25s ease;}
+  .modal-overlay.show .modal-box{transform:translateY(0);}
+  .modal-box h3{margin:0 0 14px;}
+  .modal-actions{display:flex; gap:10px; margin-top:16px;}
+  .modal-actions button{flex:1; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--text); font-weight:600; cursor:pointer;}
+  .modal-actions .confirm{background:linear-gradient(90deg,var(--accent1),var(--accent2)); color:#04202b; border:none;}
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <section id="screen-inicio" class="screen active">
+    <h1>💧 AQUAFLOW</h1>
+    <div class="greeting" id="greeting">Bom dia! 👋</div>
+
+    <div class="bottle-wrap">
+      <div class="bottle">
+        <div class="water" id="waterFill">
+          <svg class="wave wave1" viewBox="0 0 1200 40" preserveAspectRatio="none"><path d="M0,20 C150,45 350,-5 600,20 C850,45 1050,-5 1200,20 L1200,40 L0,40 Z" fill="#ffffff" opacity="0.35"/></svg>
+          <svg class="wave wave2" viewBox="0 0 1200 40" preserveAspectRatio="none"><path d="M0,20 C150,-5 350,45 600,20 C850,-5 1050,45 1200,20 L1200,40 L0,40 Z" fill="#ffffff" opacity="0.25"/></svg>
+        </div>
+        <div class="bottle-info">
+          <div class="drop">💧</div>
+          <div class="ml" id="mlNow">0ml</div>
+          <div class="goal" id="mlGoalLabel">Meta: 2000ml</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="progress-label"><span id="progressText">0 / 2000 ml</span><span id="progressPct">0%</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div class="quick-row">
+      <button class="quick-btn" data-add="200">+200 ml</button>
+      <button class="quick-btn" data-add="300">+300 ml</button>
+      <button class="quick-btn" data-add="500">+500 ml</button>
+      <button class="quick-btn custom-btn" id="btnCustom">+</button>
+    </div>
+
+    <div class="next-card">
+      <div>
+        <div class="label">Próxima água</div>
+        <div class="time" id="nextTime">--:--</div>
+      </div>
+      <div style="font-size:22px;">⏰</div>
+    </div>
+  </section>
+
+  <section id="screen-historico" class="screen">
+    <h2>Histórico</h2>
+    <div class="card" id="historyList"></div>
+  </section>
+
+  <section id="screen-stats" class="screen">
+    <h2>Estatísticas</h2>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num" id="statStreak">0</div><div class="lbl">dias seguidos</div></div>
+      <div class="stat-card"><div class="num" id="statAvg">0</div><div class="lbl">média diária (ml)</div></div>
+      <div class="stat-card"><div class="num" id="statBest">0</div><div class="lbl">melhor dia (ml)</div></div>
+      <div class="stat-card"><div class="num" id="statGoals">0</div><div class="lbl">metas cumpridas</div></div>
+    </div>
+  </section>
+
+  <section id="screen-config" class="screen">
+    <h2>Configurações</h2>
+
+    <div class="card">
+      <div class="row" style="border:none; padding-bottom:8px;"><div class="rlabel">Meta diária</div></div>
+      <div class="meta-grid">
+        <div class="meta-opt" data-meta="1500">1.500 ml</div>
+        <div class="meta-opt" data-meta="2000">2.000 ml</div>
+        <div class="meta-opt" data-meta="2500">2.500 ml</div>
+        <div class="meta-opt" data-meta="3000">3.000 ml</div>
+      </div>
+      <div class="row" style="border:none; padding-top:0;">
+        <div class="rlabel">Personalizada</div>
+        <input type="number" id="metaCustom" placeholder="ml" style="width:100px;">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div><div class="rlabel">Notificações</div><div class="rsub">Lembretes para beber água</div></div>
+        <div class="switch" id="swNotify"><div class="knob"></div></div>
+      </div>
+      <div class="row">
+        <div class="rlabel">Intervalo</div>
+        <select id="selInterval">
+          <option value="30">30 minutos</option>
+          <option value="45">45 minutos</option>
+          <option value="60">60 minutos</option>
+          <option value="90">90 minutos</option>
+          <option value="120">120 minutos</option>
+        </select>
+      </div>
+      <div class="row">
+        <div class="rlabel">Horário inicial</div>
+        <input type="time" id="inpStart" value="08:00">
+      </div>
+      <div class="row">
+        <div class="rlabel">Horário final</div>
+        <input type="time" id="inpEnd" value="22:00">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="border:none;">
+        <div><div class="rlabel">Tema escuro</div></div>
+        <div class="switch on" id="swTheme"><div class="knob"></div></div>
+      </div>
+    </div>
+
+    <button class="reset-btn" id="btnReset">Apagar todos os dados</button>
+  </section>
+
+</div>
+
+<nav id="bottomnav">
+  <div class="nav-inner">
+    <button class="nav-btn active" data-target="inicio"><span class="ic">🏠</span>Início</button>
+    <button class="nav-btn" data-target="historico"><span class="ic">📅</span>Histórico</button>
+    <button class="nav-btn" data-target="stats"><span class="ic">📊</span>Estatísticas</button>
+    <button class="nav-btn" data-target="config"><span class="ic">⚙️</span>Config</button>
+  </div>
+</nav>
+
+<div id="celebration">
+  <div class="box">
+    <div class="emoji">🎉</div>
+    <div class="msg">Meta diária concluída!</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="customModal">
+  <div class="modal-box">
+    <h3>Adicionar água</h3>
+    <input type="number" id="customMlInput" placeholder="Quantidade em ml" style="width:100%; padding:12px;">
+    <div class="modal-actions">
+      <button id="customCancel">Cancelar</button>
+      <button class="confirm" id="customConfirm">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var KEY_META = 'aquaflow_meta';
+  var KEY_REG = 'aquaflow_registros';
+  var KEY_CFG = 'aquaflow_config';
+
+  var defaultConfig = { notify:false, interval:60, start:'08:00', end:'22:00', theme:'dark' };
+
+  function load(key, fallback){
+    try{ var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch(e){ return fallback; }
+  }
+  function save(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+
+  var state = {
+    meta: load(KEY_META, 2000),
+    registros: load(KEY_REG, {}),   // { "2026-09-22": 750 }
+    config: Object.assign({}, defaultConfig, load(KEY_CFG, {}))
+  };
+
+  function todayKey(){
+    var d = new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function dayLabel(dateObj){
+    return ['DOM','SEG','TER','QUA','QUI','SEX','SAB'][dateObj.getDay()];
+  }
+
+  // ---------- HOME ----------
+  var celebratedToday = false;
+
+  function updateGreeting(){
+    var h = new Date().getHours();
+    var g = h < 12 ? 'Bom dia! 👋' : h < 18 ? 'Boa tarde! 👋' : 'Boa noite! 👋';
+    document.getElementById('greeting').textContent = g;
+  }
+
+  function renderHome(){
+    var total = state.registros[todayKey()] || 0;
+    var pct = Math.min(100, Math.round((total/state.meta)*100));
+    document.getElementById('mlNow').textContent = total + 'ml';
+    document.getElementById('mlGoalLabel').textContent = 'Meta: ' + state.meta + 'ml';
+    document.getElementById('progressText').textContent = total + ' / ' + state.meta + ' ml';
+    document.getElementById('progressPct').textContent = pct + '%';
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('waterFill').style.height = pct + '%';
+    renderNextReminder();
+  }
+
+  function spawnBubbles(){
+    var bottle = document.querySelector('.bottle');
+    for(var i=0;i<5;i++){
+      (function(){
+        var b = document.createElement('div');
+        b.className = 'bubble';
+        b.style.left = (10 + Math.random()*180) + 'px';
+        b.style.animationDelay = (Math.random()*0.3)+'s';
+        bottle.appendChild(b);
+        setTimeout(function(){ b.remove(); }, 2000);
+      })();
+    }
+  }
+
+  function showCelebration(){
+    var el = document.getElementById('celebration');
+    el.classList.add('show');
+    setTimeout(function(){ el.classList.remove('show'); }, 2200);
+  }
+
+  function addWater(ml){
+    if(!ml || ml <= 0) return;
+    var key = todayKey();
+    var before = state.registros[key] || 0;
+    var after = before + ml;
+    state.registros[key] = after;
+    save(KEY_REG, state.registros);
+    spawnBubbles();
+    renderHome();
+    if(before < state.meta && after >= state.meta && !celebratedToday){
+      celebratedToday = true;
+      showCelebration();
+    }
+  }
+
+  // ---------- HISTORY ----------
+  function last7Days(){
+    var days = [];
+    for(var i=6;i>=0;i--){
+      var d = new Date();
+      d.setDate(d.getDate()-i);
+      var key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      days.push({ key:key, label: dayLabel(d), ml: state.registros[key]||0 });
+    }
+    return days;
+  }
+
+  function renderHistory(){
+    var days = last7Days();
+    var html = '';
+    days.forEach(function(d){
+      var pct = Math.min(100, Math.round((d.ml/state.meta)*100));
+      html += '<div class="day-row">'+
+        '<div class="dlabel">'+d.label+'</div>'+
+        '<div class="dbar"><div class="dfill" style="width:'+pct+'%"></div></div>'+
+        '<div class="dval">'+d.ml+' ml</div>'+
+        '<div class="dcheck">'+(d.ml>=state.meta && d.ml>0 ? '✓' : '')+'</div>'+
+        '</div>';
+    });
+    document.getElementById('historyList').innerHTML = html;
+  }
+
+  // ---------- STATS ----------
+  function renderStats(){
+    var entries = Object.keys(state.registros).map(function(k){ return {key:k, ml: state.registros[k]}; });
+    entries.sort(function(a,b){ return a.key < b.key ? -1 : 1; });
+
+    var goalsHit = entries.filter(function(e){ return e.ml >= state.meta; }).length;
+    var best = entries.reduce(function(m,e){ return Math.max(m, e.ml); }, 0);
+    var withData = entries.filter(function(e){ return e.ml > 0; });
+    var avg = withData.length ? Math.round(withData.reduce(function(s,e){ return s+e.ml; },0)/withData.length) : 0;
+
+    // streak: consecutive days (ending today) meeting the goal
+    var streak = 0;
+    var d = new Date();
+    while(true){
+      var key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      var ml = state.registros[key] || 0;
+      if(ml >= state.meta && ml > 0){ streak++; d.setDate(d.getDate()-1); }
+      else break;
+    }
+
+    document.getElementById('statStreak').textContent = streak;
+    document.getElementById('statAvg').textContent = avg;
+    document.getElementById('statBest').textContent = best;
+    document.getElementById('statGoals').textContent = goalsHit;
+  }
+
+  // ---------- SETTINGS ----------
+  function renderSettings(){
+    document.querySelectorAll('.meta-opt').forEach(function(el){
+      el.classList.toggle('active', Number(el.dataset.meta) === state.meta);
+    });
+    document.getElementById('metaCustom').value = [1500,2000,2500,3000].indexOf(state.meta) === -1 ? state.meta : '';
+    document.getElementById('swNotify').classList.toggle('on', !!state.config.notify);
+    document.getElementById('selInterval').value = state.config.interval;
+    document.getElementById('inpStart').value = state.config.start;
+    document.getElementById('inpEnd').value = state.config.end;
+    document.getElementById('swTheme').classList.toggle('on', state.config.theme === 'dark');
+  }
+
+  function setMeta(v){
+    state.meta = v;
+    save(KEY_META, state.meta);
+    renderSettings(); renderHome(); renderHistory(); renderStats();
+  }
+
+  // ---------- NOTIFICATIONS ----------
+  // Observação: setInterval no navegador só dispara com o app aberto em primeiro
+  // plano/segundo plano recente. Para notificações agendadas de verdade com o app
+  // fechado no Android, ao empacotar em APK (via Capacitor/Cordova) troque este
+  // bloco pelo plugin nativo "Local Notifications" e agende os horários abaixo
+  // usando a API nativa dele.
+  var notifyTimer = null;
+
+  function withinWindow(now, start, end){
+    return now >= start && now <= end;
+  }
+  function toMinutes(hhmm){
+    var p = hhmm.split(':'); return Number(p[0])*60 + Number(p[1]);
+  }
+  function fromMinutes(mins){
+    mins = ((mins % 1440) + 1440) % 1440;
+    var h = Math.floor(mins/60), m = mins%60;
+    return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  }
+
+  function renderNextReminder(){
+    var el = document.getElementById('nextTime');
+    if(!state.config.notify){ el.textContent = '--:--'; return; }
+    var now = new Date();
+    var nowMin = now.getHours()*60 + now.getMinutes();
+    var startMin = toMinutes(state.config.start);
+    var endMin = toMinutes(state.config.end);
+    var interval = Number(state.config.interval);
+    var next = nowMin < startMin ? startMin : nowMin + (interval - (nowMin - startMin) % interval);
+    if(next > endMin) next = startMin; // volta pro dia seguinte, simplificado
+    el.textContent = fromMinutes(next);
+  }
+
+  function checkNotificationTick(){
+    if(!state.config.notify) return;
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    var now = new Date();
+    var nowMin = now.getHours()*60 + now.getMinutes();
+    var startMin = toMinutes(state.config.start);
+    var endMin = toMinutes(state.config.end);
+    var interval = Number(state.config.interval);
+    if(withinWindow(nowMin, startMin, endMin) && (nowMin - startMin) % interval === 0){
+      new Notification('💧 Hora de beber água!', { body:'Que tal tomar 250 ml agora?', icon:'icon.svg' });
+    }
+    renderNextReminder();
+  }
+
+  function setupNotifications(){
+    if(notifyTimer) clearInterval(notifyTimer);
+    if(state.config.notify){
+      if('Notification' in window && Notification.permission === 'default'){
+        Notification.requestPermission();
+      }
+      notifyTimer = setInterval(checkNotificationTick, 60*1000);
+    }
+    renderNextReminder();
+  }
+
+  // ---------- THEME ----------
+  function applyTheme(){
+    document.documentElement.setAttribute('data-theme', state.config.theme);
+  }
+
+  // ---------- NAV ----------
+  function goTo(target){
+    document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+    document.getElementById('screen-'+target).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.target === target); });
+    if(target==='historico') renderHistory();
+    if(target==='stats') renderStats();
+    if(target==='config') renderSettings();
+  }
+
+  document.querySelectorAll('.nav-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){ goTo(btn.dataset.target); });
+  });
+
+  document.querySelectorAll('.quick-btn[data-add]').forEach(function(btn){
+    btn.addEventListener('click', function(){ addWater(Number(btn.dataset.add)); });
+  });
+
+  // custom amount modal
+  var customModal = document.getElementById('customModal');
+  document.getElementById('btnCustom').addEventListener('click', function(){
+    document.getElementById('customMlInput').value = '';
+    customModal.classList.add('show');
+  });
+  document.getElementById('customCancel').addEventListener('click', function(){ customModal.classList.remove('show'); });
+  document.getElementById('customConfirm').addEventListener('click', function(){
+    var v = Number(document.getElementById('customMlInput').value);
+    if(v > 0) addWater(v);
+    customModal.classList.remove('show');
+  });
+
+  document.querySelectorAll('.meta-opt').forEach(function(el){
+    el.addEventListener('click', function(){ setMeta(Number(el.dataset.meta)); });
+  });
+  document.getElementById('metaCustom').addEventListener('change', function(e){
+    var v = Number(e.target.value);
+    if(v > 0) setMeta(v);
+  });
+
+  document.getElementById('swNotify').addEventListener('click', function(){
+    state.config.notify = !state.config.notify;
+    save(KEY_CFG, state.config);
+    renderSettings();
+    setupNotifications();
+  });
+  document.getElementById('selInterval').addEventListener('change', function(e){
+    state.config.interval = Number(e.target.value);
+    save(KEY_CFG, state.config);
+    setupNotifications();
+  });
+  document.getElementById('inpStart').addEventListener('change', function(e){
+    state.config.start = e.target.value;
+    save(KEY_CFG, state.config);
+    setupNotifications();
+  });
+  document.getElementById('inpEnd').addEventListener('change', function(e){
+    state.config.end = e.target.value;
+    save(KEY_CFG, state.config);
+    setupNotifications();
+  });
+  document.getElementById('swTheme').addEventListener('click', function(){
+    state.config.theme = state.config.theme === 'dark' ? 'light' : 'dark';
+    save(KEY_CFG, state.config);
+    renderSettings();
+    applyTheme();
+  });
+
+  document.getElementById('btnReset').addEventListener('click', function(){
+    if(confirm('Isso vai apagar meta, histórico e configurações. Continuar?')){
+      localStorage.removeItem(KEY_META);
+      localStorage.removeItem(KEY_REG);
+      localStorage.removeItem(KEY_CFG);
+      location.reload();
+    }
+  });
+
+  // ---------- INIT ----------
+  applyTheme();
+  updateGreeting();
+  renderHome();
+  renderSettings();
+  setupNotifications();
+
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  }
+})();
+</script>
+</body>
+</html>
